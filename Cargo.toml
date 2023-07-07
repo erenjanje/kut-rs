@@ -1,0 +1,20 @@
+[package]
+name = "kut"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "kut"
+path = "src/lib.rs"
+crate-type = ["cdylib"]
+
+[[bin]]
+name = "kut"
+path = "src/main.rs"
+
+[profile.release]
+lto = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
