@@ -3,25 +3,21 @@ pub mod vm;
 use value::*;
 use vm::*;
 use std::rc::Rc;
-use std::collections::HashMap;
 
-fn main() {
-    let inner_instructions = vec![];
-    let instruction_list = vec![
-        KutInstruction::new_imm(KutImmediateInstruction::GetLiteralR, 2, 0),
-        KutInstruction::new_imm(KutImmediateInstruction::GetLiteralR, 3, 2),
+fn main() -> Result<(), String> {
+    let instructions = vec![
+        KutInstruction::GetLiteralR { reg: 0, literal: 0 },
+        KutInstruction::GetLiteralR { reg: 1, literal: 5 },
     ];
-    let mut dict: HashMap<KutValue, KutValue> = HashMap::new();
-    dict.insert(KutValue::String(Rc::new("aa".to_owned())));
-    let literals = Box::new(vec![
-        KutValue::Number(21.0),
-        KutValue::String(Rc::new("zort".to_owned())),
-        KutValue::List(Rc::new(vec![KutValue::Number(5.0), KutValue::Number(10.0)])),
-        KutValue::Dict(Rc::new(HashMap::new()))
-    ]);
-    let mut vm = KutVM::new(
-        KutFunc::new(instruction_list, 4, 0, &literals), vec![
-        KutFunc::new(inner_instructions, 4, 0, &literals),
-    ]);
-    vm.run().unwrap();
+    let literals = vec![
+        KutValue::Number(5.0),
+        KutValue::String(Rc::new(String::from("zort"))),
+    ];
+    let templates = vec![KutFunctionTemplate::new(instructions, vec![], 4)];
+    let vm = KutVm::new(literals, templates);
+    let capture = vm.templates[0].capture(None)?;
+    let mut func = capture.start();
+    func.run(&vm)?;
+    dbg!(&func);
+    return Ok(());
 }
