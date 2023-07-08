@@ -7,7 +7,7 @@ use std::rc::Rc;
 fn main() -> Result<(), String> {
     let instructions = vec![
         KutInstruction::GetLiteralR { reg: 0, literal: 0 },
-        KutInstruction::GetLiteralR { reg: 1, literal: 5 },
+        KutInstruction::GetLiteralR { reg: 1, literal: 1 },
     ];
     let literals = vec![
         KutValue::Number(5.0),
