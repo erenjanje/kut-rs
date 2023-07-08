@@ -94,10 +94,10 @@ impl<'template> Clone for KutValue<'template> {
             Self::Nil => Self::Nil,
             Self::Undefined => Self::Undefined,
             Self::Number(num) => Self::Number(*num),
-            Self::String(string) => Self::String(string.clone()),
-            Self::List(list) => Self::List(list.clone()),
-            Self::Func(func) => Self::Func(func.clone()),
-            Self::External(ext) => Self::External(ext.clone()),
+            Self::String(string) => Self::String(Rc::clone(string)),
+            Self::List(list) => Self::List(Rc::clone(list)),
+            Self::Func(func) => Self::Func(Rc::clone(func)),
+            Self::External(ext) => Self::External(Rc::clone(ext)),
         }
     }
 }
