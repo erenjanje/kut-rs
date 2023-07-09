@@ -10,6 +10,7 @@ fn main() -> Result<(), String> {
         KutInstruction::GetLiteralR { reg: 1, literal: 1 },
         KutInstruction::GetLiteralR { reg: 2, literal: 1 },
         KutInstruction::CaptureFunc { reg: 3, template: 1 },
+        // KutInstruction::GetLiteralR { reg: 2, literal: 2 },
     ];
     let inner_instructions = vec![
         KutInstruction::GetLiteralR { reg: 0, literal: 2 },
@@ -21,14 +22,14 @@ fn main() -> Result<(), String> {
     ];
     let templates = vec![
         KutFunctionTemplate::new(instructions, vec![], 4),
-        KutFunctionTemplate::new(inner_instructions, vec![KutCaptureInfo::Register(0)], 2),
+        KutFunctionTemplate::new(inner_instructions, vec![KutCaptureInfo::Register(2)], 2),
     ];
     let vm = KutVm::new(literals, templates);
     let capture = vm.templates[0].capture(None)?;
     let mut func = capture.start();
     func.run(&vm)?;
     dbg!(&func);
-    dbg!(&vm);
+    // dbg!(&vm);
     if let KutValue::String(s) = &vm.literals[1] {
         println!("{}", Rc::strong_count(s));
     }
