@@ -22,6 +22,7 @@ pub enum KutValue<'template> {
     String(Rc<String>),
     List(Rc<Vec<KutValue<'template>>>),
     Func(Rc<KutClosure<'template>>),
+    Reference(Rc<RefCell<KutValue<'template>>>),
     External(Rc<KutObject>),
 }
 
@@ -65,7 +66,7 @@ pub struct KutFunctionTemplate {
 #[derive(Debug)]
 pub struct KutClosure<'template> {
     pub template: &'template KutFunctionTemplate,
-    pub captures: Vec<RefCell<KutValue<'template>>>,
+    pub captures: Vec<KutValue<'template>>,
 }
 
 #[derive(Debug)]
@@ -97,6 +98,7 @@ impl<'template> Clone for KutValue<'template> {
             Self::String(string) => Self::String(Rc::clone(string)),
             Self::List(list) => Self::List(Rc::clone(list)),
             Self::Func(func) => Self::Func(Rc::clone(func)),
+            Self::Reference(r) => Self::Reference(Rc::clone(r)),
             Self::External(ext) => Self::External(Rc::clone(ext)),
         }
     }

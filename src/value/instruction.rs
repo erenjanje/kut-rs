@@ -65,7 +65,7 @@ impl KutInstruction {
             KutInstruction::CallMethodR { ret_position, arg_count, subject } => KutInstruction::handle_call_method_r(context, *ret_position, *arg_count, *subject),
             KutInstruction::CallMethodS { arg_count, subject } => KutInstruction::handle_call_method_s(context, *arg_count, *subject),
             KutInstruction::CaptureFunc { reg, template } => KutInstruction::handle_capture_function(context, vm, *reg, *template),
-            KutInstruction::GetCaptureR { reg, capture } => unimplemented!(),
+            KutInstruction::GetCaptureR { reg, capture } => KutInstruction::handle_get_capture_r(context, vm, *reg, *capture),
             KutInstruction::GetLiteralR { reg, literal } => KutInstruction::handle_get_literal_r(context, vm, *reg, *literal),
             KutInstruction::MovRegister { destination, source } => unimplemented!(),
             KutInstruction::PopCaptureS { capture } => unimplemented!(),
@@ -109,6 +109,10 @@ impl<'closure, 'template> KutInstruction {
         } else {
             Err(KutErrorType::TemplateOutOfRange { template, template_count: vm.templates.len() })
         }
+    }
+
+    fn handle_get_capture_r(context: &mut KutFunction<'closure, 'template>, vm: &'template KutVm<'template>, reg: u8, capture: u16) -> KutReturnType<'template> {
+        Ok(None)
     }
 
     fn handle_get_literal_r(context: &mut KutFunction<'closure, 'template>, vm: &'template KutVm<'template>, reg: u8, literal: u16) -> KutReturnType<'template> {

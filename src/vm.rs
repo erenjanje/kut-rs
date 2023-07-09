@@ -1,5 +1,6 @@
 use crate::value::*;
 
+#[derive(Debug)]
 pub struct KutVm<'template> {
     pub literals: Vec<KutValue<'template>>,
     pub templates: Vec<KutFunctionTemplate>,
