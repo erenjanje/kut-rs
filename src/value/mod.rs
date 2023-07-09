@@ -87,6 +87,7 @@ pub enum KutError {
     OutOfRangeSourceCapture{capture: u16, capture_count: usize},
     OutOfRangeDestinationRegister{register: u8, register_count: usize},
     OutOfRangeSourceRegister{register: u8, register_count: usize},
+    OutOfRangeSwapRegister{register: u8, register_count: usize},
 }
 
 pub type KutReturnType<'a> = Result<Option<KutValue<'a>>, KutError>;
@@ -151,6 +152,9 @@ impl From<KutError> for String {
             KutError::OutOfRangeSourceRegister { register, register_count } => {
                 format!("KutError::OutOfRangeSourceRegister: try to get register {register} when there are {register_count} registers")
             },
+            KutError::OutOfRangeSwapRegister { register, register_count } => {
+                format!("KutError::OutOfRangeSwapRegister: try to get and set register {register} when there are {register_count} registers")
+            }
         }
     }
 }
