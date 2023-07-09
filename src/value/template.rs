@@ -4,7 +4,7 @@ impl KutFunctionTemplate {
     pub fn new(instructions: Vec<KutInstruction>, capture_infos: Vec<KutCaptureInfo>, register_count: u8) -> KutFunctionTemplate {
         KutFunctionTemplate { instructions, capture_infos, register_count }
     }
-    pub fn capture<'closure,'template>(&'template self, _env: Option<&mut KutFunction<'closure,'template>>) -> Result<KutClosure<'template>, KutErrorType> {
+    pub fn capture<'closure,'template>(&'template self, _env: Option<&mut KutFunction<'closure,'template>>) -> Result<KutClosure<'template>, KutError> {
         if let Some(env) = _env  {
             let mut captures: Vec<KutValue> = Vec::with_capacity(self.capture_infos.len());
             for capture_info in self.capture_infos.iter() {
@@ -15,14 +15,14 @@ impl KutFunctionTemplate {
                             *val = KutValue::Reference(Rc::new(RefCell::new(inner_val)));
                             captures.push((*val).clone());
                         } else {
-                            return Err(KutErrorType::CaptureOutOfRangeRegister { register: *reg, register_count: env.registers.len() });
+                            return Err(KutError::OutOfRangeDestinationRegister { register: *reg, register_count: env.registers.len() });
                         }
                     },
                     KutCaptureInfo::Capture(cap) => {
                         if let Some(val) = env.closure.captures.get(*cap as usize) {
                             captures.push((*val).clone());
                         } else {
-                            return Err(KutErrorType::CaptureOutOfRangeCapture { capture: *cap, capture_count: env.closure.captures.len() });
+                            return Err(KutError::OutOfRangeSourceCapture { capture: *cap, capture_count: env.closure.captures.len() });
                         }
                     }
                 }
@@ -31,7 +31,7 @@ impl KutFunctionTemplate {
         } else if self.capture_infos.len() == 0 {
             Ok(KutClosure { template: self, captures: vec![] })
         } else {
-            Err(KutErrorType::CaptureEmptyEnvironment { needed_captures: self.capture_infos.len() })
+            Err(KutError::CaptureEmptyEnvironment { needed_captures: self.capture_infos.len() })
         }
     }
 }

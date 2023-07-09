@@ -77,17 +77,19 @@ pub struct KutFunction<'closure,'template> where 'closure: 'template {
 }
 
 #[derive(Debug)]
-pub enum KutErrorType {
+pub enum KutError {
+    StackUnderflow,
     CaptureEmptyEnvironment{needed_captures: usize},
-    CaptureOutOfRangeRegister{register: u8, register_count: usize},
-    CaptureOutOfRangeCapture{capture: u16, capture_count: usize},
-    TemplateOutOfRange{template: u16, template_count: usize},
-    TemplateOutOfRangeRegister{register: u8, register_count: usize},
-    LiteralOutOfRange{literal: u16, literal_count: usize},
-    LiteralOutOfRangeRegister{register: u8, register_count: usize},
+    NonReferenceCapture{capture: u16, capture_type: String},
+    OutOfRangeTemplate{template: u16, template_count: usize},
+    OutOfRangeLiteral{literal: u16, literal_count: usize},
+    OutOfRangeDestinationCapture{capture: u16, capture_count: usize},
+    OutOfRangeSourceCapture{capture: u16, capture_count: usize},
+    OutOfRangeDestinationRegister{register: u8, register_count: usize},
+    OutOfRangeSourceRegister{register: u8, register_count: usize},
 }
 
-pub type KutReturnType<'a> = Result<Option<KutValue<'a>>, KutErrorType>;
+pub type KutReturnType<'a> = Result<Option<KutValue<'a>>, KutError>;
 
 impl<'template> Clone for KutValue<'template> {
     fn clone(&self) -> Self {
@@ -104,29 +106,50 @@ impl<'template> Clone for KutValue<'template> {
     }
 }
 
-impl From<KutErrorType> for String {
-    fn from(value: KutErrorType) -> Self {
+impl<'template> KutValue<'template> {
+    fn get_type_string(&self) -> String {
+        match self {
+            KutValue::Nil => "Nil",
+            KutValue::Undefined => "Undefined",
+            KutValue::Number(_) => "Number",
+            KutValue::String(_) => "String",
+            KutValue::List(_) => "List",
+            KutValue::Func(_) => "Func",
+            KutValue::Reference(_) => "Reference",
+            KutValue::External(_) => "External",
+        }.to_owned()
+    }
+}
+
+impl From<KutError> for String {
+    fn from(value: KutError) -> Self {
         match value {
-            KutErrorType::CaptureEmptyEnvironment { needed_captures } => {
-                format!("Error CaptureEmptyEnvironment: {needed_captures} captures are needed")
+            KutError::StackUnderflow => {
+                format!("KutError::StackUnderflow: try to pop from empty call stack")
             },
-            KutErrorType::CaptureOutOfRangeCapture { capture, capture_count } => {
-                format!("Error CaptureOutOfRangeCapture: try to capture {capture} when there are {capture_count} captured elements")
+            KutError::CaptureEmptyEnvironment { needed_captures } => {
+                format!("KutError::CaptureEmptyEnvironment: {needed_captures} captures are needed")
             },
-            KutErrorType::CaptureOutOfRangeRegister { register, register_count } => {
-                format!("Error CaptureOutOfRangeRegister: try to capture {register} when there are {register_count} registers")
+            KutError::NonReferenceCapture { capture, capture_type } => {
+                format!("KutError::NonReferenceCapture: try to get capture {capture} when its type is {capture_type} instead of Reference")
+            }
+            KutError::OutOfRangeTemplate { template, template_count } => {
+                format!("KutError::OutOfRangeTemplate: try to capture {template} when there are {template_count} templates")
             },
-            KutErrorType::TemplateOutOfRange { template, template_count } => {
-                format!("Error TemplateOutOfRange: try to capture {template} when there are {template_count} templates")
+            KutError::OutOfRangeLiteral { literal, literal_count } => {
+                format!("KutError::OutOfRangeLiteral: try to get literal {literal} when there are {literal_count} literals")
             },
-            KutErrorType::TemplateOutOfRangeRegister { register, register_count } => {
-                format!("Error TemplateOutOfRangeRegister: try to put created template into register {register} when there are {register_count} registers")
+            KutError::OutOfRangeDestinationCapture { capture, capture_count } => {
+                format!("KutError::OutOfRangeDestinationCapture: try to set to capture {capture} when there are {capture_count} captures")
             },
-            KutErrorType::LiteralOutOfRange { literal, literal_count } => {
-                format!("Error LiteralOutOfRange: try to get literal {literal} when there are {literal_count} literals")
+            KutError::OutOfRangeSourceCapture { capture, capture_count } => {
+                format!("KutError::OutOfRangeSourceCapture: try to get capture {capture} when there are {capture_count} captured captures")
             },
-            KutErrorType::LiteralOutOfRangeRegister { register, register_count } => {
-                format!("Error LiteralOutOfRangeRegister: try to set to register {register} when there are {register_count} registers")
+            KutError::OutOfRangeDestinationRegister { register, register_count } => {
+                format!("KutError::OutOfRangeDestinationRegister: try to set to register {register} when there are {register_count} registers")
+            },
+            KutError::OutOfRangeSourceRegister { register, register_count } => {
+                format!("KutError::OutOfRangeSourceRegister: try to get register {register} when there are {register_count} registers")
             },
         }
     }

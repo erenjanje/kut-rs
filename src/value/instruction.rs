@@ -65,11 +65,11 @@ impl KutInstruction {
             KutInstruction::CallMethodR { ret_position, arg_count, subject } => KutInstruction::handle_call_method_r(context, *ret_position, *arg_count, *subject),
             KutInstruction::CallMethodS { arg_count, subject } => KutInstruction::handle_call_method_s(context, *arg_count, *subject),
             KutInstruction::CaptureFunc { reg, template } => KutInstruction::handle_capture_function(context, vm, *reg, *template),
-            KutInstruction::GetCaptureR { reg, capture } => KutInstruction::handle_get_capture_r(context, vm, *reg, *capture),
+            KutInstruction::GetCaptureR { reg, capture } => KutInstruction::handle_get_capture_r(context, *reg, *capture),
             KutInstruction::GetLiteralR { reg, literal } => KutInstruction::handle_get_literal_r(context, vm, *reg, *literal),
-            KutInstruction::MovRegister { destination, source } => unimplemented!(),
-            KutInstruction::PopCaptureS { capture } => unimplemented!(),
-            KutInstruction::PushCapture { capture } => unimplemented!(),
+            KutInstruction::MovRegister { destination, source } => KutInstruction::handle_mov_register(context, *destination, *source),
+            KutInstruction::PopCaptureS { capture } => KutInstruction::handle_pop_capture(context, *capture),
+            KutInstruction::PushCapture { capture } => KutInstruction::handle_push_capture(context, *capture),
             KutInstruction::PushFuncStk { template } => unimplemented!(),
             KutInstruction::PushLiteral { literal } => unimplemented!(),
             KutInstruction::PushValue1R { val1 } => unimplemented!(),
@@ -89,11 +89,11 @@ impl<'closure, 'template> KutInstruction {
         Ok(None)
     }
     
-    fn handle_call_method_r(context: &mut KutFunction<'closure, 'template>, ret_position: u8, arg_count: u8, subject: u8) -> KutReturnType<'template> {
+    fn handle_call_method_r(_context: &mut KutFunction<'closure, 'template>, _ret_position: u8, _arg_count: u8, _subject: u8) -> KutReturnType<'template> {
         unimplemented!()
     }
 
-    fn handle_call_method_s(context: &mut KutFunction<'closure, 'template>, arg_count: u8, subject: u8) -> KutReturnType<'template> {
+    fn handle_call_method_s(_context: &mut KutFunction<'closure, 'template>, _arg_count: u8, _subject: u8) -> KutReturnType<'template> {
         unimplemented!()
     }
 
@@ -104,15 +104,28 @@ impl<'closure, 'template> KutInstruction {
                 *register = closure;
                 Ok(None)
             } else {
-                Err(KutErrorType::TemplateOutOfRangeRegister { register: reg, register_count: context.registers.len() })
+                Err(KutError::OutOfRangeDestinationRegister { register: reg, register_count: context.registers.len() })
             }
         } else {
-            Err(KutErrorType::TemplateOutOfRange { template, template_count: vm.templates.len() })
+            Err(KutError::OutOfRangeTemplate { template, template_count: vm.templates.len() })
         }
     }
 
-    fn handle_get_capture_r(context: &mut KutFunction<'closure, 'template>, vm: &'template KutVm<'template>, reg: u8, capture: u16) -> KutReturnType<'template> {
-        Ok(None)
+    fn handle_get_capture_r(context: &mut KutFunction<'closure, 'template>, reg: u8, capture: u16) -> KutReturnType<'template> {
+        if let Some(cap) = context.closure.captures.get(capture as usize) {
+            if let KutValue::Reference(captured) = cap {
+                if let Some(destination) = context.registers.get_mut(reg as usize) {
+                    *destination = (*captured).borrow().clone();
+                    Ok(None)
+                } else {
+                    Err(KutError::OutOfRangeDestinationRegister { register: reg, register_count: context.registers.len() })
+                }
+            } else {
+                Err(KutError::NonReferenceCapture { capture: capture, capture_type: cap.get_type_string() })
+            }
+        } else {
+            Err(KutError::OutOfRangeSourceCapture { capture, capture_count: context.closure.captures.len() })
+        }
     }
 
     fn handle_get_literal_r(context: &mut KutFunction<'closure, 'template>, vm: &'template KutVm<'template>, reg: u8, literal: u16) -> KutReturnType<'template> {
@@ -122,10 +135,64 @@ impl<'closure, 'template> KutInstruction {
                 *register = literal_cloned;
                 Ok(None)
             } else {
-                Err(KutErrorType::LiteralOutOfRangeRegister { register: reg, register_count: context.registers.len() })
+                Err(KutError::OutOfRangeDestinationRegister { register: reg, register_count: context.registers.len() })
             }
         } else {
-            Err(KutErrorType::LiteralOutOfRange { literal, literal_count: vm.literals.len() })
+            Err(KutError::OutOfRangeLiteral { literal, literal_count: vm.literals.len() })
         }
+    }
+
+    fn handle_mov_register(context: &mut KutFunction<'closure, 'template>, destination: u8, source: u8) -> KutReturnType<'template> {
+        if destination == source {
+            Ok(None)
+        } else {
+            if let Some(src) = context.registers.get(source as usize) {
+                let value = src.clone();
+                if let Some(dest) = context.registers.get_mut(destination as usize) {
+                    *dest = value;
+                    Ok(None)
+                } else {
+                    Err(KutError::OutOfRangeDestinationRegister { register: destination, register_count: context.registers.len() })
+                }
+            } else {
+                Err(KutError::OutOfRangeSourceRegister { register: source, register_count: context.registers.len() })
+            }
+        }
+    }
+
+    fn handle_pop_capture(context: &mut KutFunction<'closure, 'template>, capture: u16) -> KutReturnType<'template> {
+        if let Some(source) = context.call_stack.pop() {
+            let val = source.clone();
+            if let Some(destination) = context.closure.captures.get(capture as usize) {
+                if let KutValue::Reference(dest) = destination {
+                    *(*dest).borrow_mut() = val;
+                    Ok(None)
+                } else {
+                    Err(KutError::NonReferenceCapture { capture, capture_type: destination.get_type_string() })
+                }
+            } else {
+                Err(KutError::OutOfRangeDestinationCapture { capture, capture_count: context.closure.captures.len() })
+            }
+        } else {
+            Err(KutError::StackUnderflow)
+        }
+    }
+
+    fn handle_push_capture(context: &mut KutFunction<'closure, 'template>, capture: u16) -> KutReturnType<'template> {
+        if let Some(cap) = context.closure.captures.get(capture as usize) {
+            if let KutValue::Reference(r) = cap {
+                let value = (*r).borrow().clone();
+                context.call_stack.push(value);
+                Ok(None)
+            } else {
+                Err(KutError::NonReferenceCapture { capture, capture_type: cap.get_type_string() })
+            }
+        } else {
+            Err(KutError::OutOfRangeSourceCapture { capture, capture_count: context.closure.captures.len() })
+        }
+    }
+
+    fn handle_push_template(context: &mut KutFunction<'closure, 'template>, vm: &'template KutVm<'template>, template: u16) -> KutReturnType<'template> {
+        Ok(None)
     }
 }
